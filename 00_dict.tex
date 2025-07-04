@@ -1,0 +1,240 @@
+% DOKUMENTENKLASSE
+\documentclass[a4paper,11pt]{report}
+
+% PAPIERFORMAT 
+\usepackage[a4paper]{geometry}			% verkleinert die margins
+\usepackage{fullpage}				% verkleinert den größten Teil der margins um etwa 1,5cm
+	\frenchspacing				% kein zusätzlicher Abstand nach Punkt
+
+% SPRACHE
+\usepackage[utf8]{inputenc}				% für spezielle Zeichen, Umlaute etc.
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}				% [ngerman] setzt die Spracheinstellung auf Neue dt. Rechtschreibung
+
+% SILBENTRENNUNG
+ \tolerance=1000 
+ \hyphenpenalty=1000
+
+% LINKDARSTELLUNG
+
+\usepackage{hyphenat}	
+\usepackage{hyperref, bookmark}
+
+% ZEICHEN
+\usepackage{pifont}						% spezielle (Pfeile etc.)
+\usepackage{textcomp}						% Gradzeichen
+\usepackage{tipa}						% IPA-Darstellung
+
+% FARBEN 
+\usepackage[usenames,dvipsnames]{color}	% für die 68 Standardfarben
+
+% SPALTEN
+\usepackage{multicol}						% Spalten im Dokument mit \begin{multicols}{2, 3, 4 … 10}
+% \usepackage{draftwatermark}				% kreiert Wasserzeichen 'Draft' (kann mit colorpackage kollidieren, ansonst nach geometry einfügen)
+% \SetWatermarkScale{5}						% vergrößert Schriftart
+% \SetWatermarkLightness{0.9}				% verändert Helligkeit des Textes 0=schwarz, 1=weiß
+%\SetWatermarkText{\textsc{Rohfassung}}	% verändert Standarttext
+
+% EINZÜGE
+\setlength{\parindent}{0cm}				% lässt Paragraphen NICHT (0cm) einrücken
+
+% DEFINIERTE BEFEHLE						kreiert neue (verkürzte) Befehle
+\newcommand{\hi}{\hangindent=0.3cm}		
+\newcommand{\B}[1]{\textbf{#1}}
+\newcommand{\I}[1]{\textipa{#1}}
+\newcommand{\on}[1]{\oldstylenums{#1}}
+\newcommand{\LINK}[2]{{\color{blue}\href{#1}{\textsc{#2}}}}
+\newcommand{\cp}[1]{{\color{Plum}{#1}}}
+\newcommand{\cb}[1]{{\color{blue}{#1}}}
+\newcommand{\HT}[2]{\hypertarget{#1}{#2}}
+\newcommand{\HL}[2]{\hyperlink{#1}{#2}}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+% DOKUMENT
+
+\begin{document}
+\title{\B{An Annotated Na'vi Dictionary}\footnote{This work is licensed under the Creative Commons Attribution-ShareAlike License, version 3.0. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/.} \\
+\emph{Aysìkenonghu a Lì'upuk leNa'vi}}  		
+\author{Compiled by Stefan G. M\"uller (Plumps)}
+
+\date{\today}
+
+\maketitle
+% ===== Blindbefehle ======
+% \I{[]}
+% \cp{}
+% \B{}
+% \emph{}
+% $\cdot$
+% \LINK{}{}
+% \HT{}{}						akzeptiert kein ì (= I), ä (= A)
+% \HL{}{\B{
+%  \ding{96} botany, flora 
+%  \ding{214} opposite of 
+%  \ding{43} see, compare with entry
+%  \ding{246} military, combat, archery
+% \\  \on{}. \B{}, .
+% (\emph{a. subjective})
+% (\emph{b. agentive})
+% (\emph{c. patientive})
+% (\emph{d. genitive})
+% (\emph{e. dative})
+% (\emph{f. topic})
+
+% ======= ToC ??? ==========
+
+% Test
+
+% \include{38_testbearbeitung}
+ 
+%  \end{document}
+
+% ======= Introduction ========
+
+% \include{01_intro}
+
+% ======= How-to ========
+
+% \include{02_howto}
+
+% ===== section IPA =====
+
+ \include{03_ipa}
+
+% ===== section word classes =====
+
+ \input{04_nv} 							% input: fortlaufender Text beim Einfügen
+
+% ===== section abbreviations =====
+
+ \include{05_abbr} 						% include: forciert einen Seitenumbruch beim Einfügen
+
+% ===== section apostrophe ======
+
+ \input{06_apostroph}
+
+% ====== Sektion A ======
+
+ \input{07_a}
+
+% ====== section AW ======
+
+ \input{08_aw}
+ 
+% ===== Section AY =====
+
+ \input{09_ay}
+
+% ===== Section Ä =====
+
+ \input{10_ae}
+
+% ===== Section E =====
+
+ \input{11_e}
+
+% ===== Section EW =====
+
+ \input{12_ew}
+
+% ===== Section EY =====
+
+ \input{13_ey}
+
+% ===== Section F =====
+
+ \input{14_f}
+
+% ===== section H ===== 
+
+ \input{15_h}
+ 
+% ===== Section I =====
+
+ \input{16_i}
+
+% ===== Section ì =====
+
+ \input{17_ishort}
+
+% ===== section K =====
+
+ \input{18_k}
+
+% ===== Section KX =====
+
+ \input{19_kx}
+
+% ===== Section L =====   
+
+ \input{20_l}
+ 
+% ===== Section M =====  derivations
+
+ \input{21_m}
+
+% ===== Section N ===== 
+
+ \input{22_n}
+
+% ===== Section NG ===== 
+
+ \input{23_ng}
+ 
+% ===== Section O ===== 
+
+ \input{24_o}
+
+% ===== Section P =====
+
+ \input{25_p}
+
+% ===== Section PX =====
+
+ \input{26_px}
+
+% ===== Section R =====
+
+ \input{27_r}
+
+% ===== Section S ===== 
+
+ \input{28_s}
+ 
+% ===== Section T ===== 
+
+ \input{29_t}
+
+% ===== Section TX ===== 
+
+ \input{30_tx}
+
+% ===== Section TS =====  
+
+ \input{31_ts}
+
+% ===== Section U =====
+
+ \input{32_u}
+
+% ===== Section V =====
+
+ \input{33_v}
+
+% ===== Section W =====
+
+ \input{34_w}
+
+% ===== Section Y =====
+
+ \input{35_y}
+
+% ===== Section Z =====  HT/HL - 
+
+ \input{36_z}
+ 
+% ===== Changelog =====
+
+ \input{37_change}
+	
+\end{document}
