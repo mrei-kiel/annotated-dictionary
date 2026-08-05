@@ -43,7 +43,7 @@ class Entry:
 
 
 def strip_comments(source: str) -> str:
-    """Remove unescaped LaTeX comments while preserving line numbers."""
+    """Mask unescaped LaTeX comments while preserving lines and offsets."""
     cleaned_lines: list[str] = []
     for line in source.splitlines(keepends=True):
         comment_at: int | None = None
@@ -62,7 +62,10 @@ def strip_comments(source: str) -> str:
             cleaned_lines.append(line)
         else:
             newline = "\n" if line.endswith("\n") else ""
-            cleaned_lines.append(line[:comment_at] + newline)
+            comment_end = len(line) - len(newline)
+            cleaned_lines.append(
+                line[:comment_at] + " " * (comment_end - comment_at) + newline
+            )
     return "".join(cleaned_lines)
 
 
@@ -228,8 +231,8 @@ def collation_key(entry: Entry) -> tuple[tuple[int, int | str], ...]:
     return tuple(key)
 
 
-def find_entries(path: Path, repository: Path) -> list[Entry]:
-    source = strip_comments(path.read_text(encoding="utf-8"))
+def entries_from_source(source: str, relative_path: Path) -> list[Entry]:
+    source = strip_comments(source)
     entries: list[Entry] = []
     for match in ENTRY_PATTERN.finditer(source):
         first = braced_argument(source, match.end())
@@ -252,11 +255,55 @@ def find_entries(path: Path, repository: Path) -> list[Entry]:
                 command=command,
                 word=word,
                 ipa=main_ipa(ipa_source),
-                path=path.relative_to(repository),
+                path=relative_path,
                 line=source.count("\n", 0, match.start()) + 1,
             )
         )
     return entries
+
+
+def find_entries(path: Path, repository: Path) -> list[Entry]:
+    return entries_from_source(
+        path.read_text(encoding="utf-8"), path.relative_to(repository)
+    )
+
+
+def sorted_entry_source(source: str, relative_path: Path) -> str:
+    """Return a chapter with complete entry blocks in collation order."""
+    entries = entries_from_source(source, relative_path)
+    if len(entries) < 2:
+        return source
+
+    masked_source = strip_comments(source)
+    command_starts = [match.start() for match in ENTRY_PATTERN.finditer(masked_source)]
+    if len(command_starts) != len(entries):
+        raise ValueError(f"could not identify every entry block in {relative_path}")
+
+    block_starts: list[int] = []
+    for command_start in command_starts:
+        line_start = source.rfind("\n", 0, command_start) + 1
+        previous_line_end = line_start - 1
+        if previous_line_end >= 0:
+            previous_line_start = source.rfind("\n", 0, previous_line_end) + 1
+            previous_line = source[previous_line_start:previous_line_end]
+            if previous_line.lstrip().startswith("%"):
+                line_start = previous_line_start
+        block_starts.append(line_start)
+
+    closing_match = re.search(r"(?m)^\}\s*\Z", source[block_starts[-1]:])
+    if closing_match is None:
+        raise ValueError(f"could not find the chapter closing brace in {relative_path}")
+    suffix_start = block_starts[-1] + closing_match.start()
+    block_ends = block_starts[1:] + [suffix_start]
+    blocks = [source[start:end] for start, end in zip(block_starts, block_ends)]
+
+    sorted_blocks = [
+        block
+        for _, block in sorted(
+            zip(entries, blocks), key=lambda pair: collation_key(pair[0])
+        )
+    ]
+    return source[:block_starts[0]] + "".join(sorted_blocks) + source[suffix_start:]
 
 
 def annotation_escape(value: str, *, property_value: bool = False) -> str:
@@ -290,6 +337,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="chapter .tex files to check (default: all numbered dictionary chapters)",
     )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="reorder complete entry blocks in place before checking",
+    )
     return parser.parse_args()
 
 
@@ -298,6 +350,17 @@ def main() -> int:
     repository = Path(__file__).resolve().parents[1]
     paths = args.files or sorted(repository.glob("[0-3][0-9]_*.tex"))
     paths = [path if path.is_absolute() else repository / path for path in paths]
+
+    if args.fix:
+        for path in paths:
+            with path.open("r", encoding="utf-8", newline="") as source_file:
+                source = source_file.read()
+            corrected = sorted_entry_source(source, path.relative_to(repository))
+            if corrected == source:
+                continue
+            with path.open("w", encoding="utf-8", newline="") as source_file:
+                source_file.write(corrected)
+            print(f"Reordered {path.relative_to(repository).as_posix()}")
 
     errors = 0
     entry_count = 0

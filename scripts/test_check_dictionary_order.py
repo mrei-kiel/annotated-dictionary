@@ -6,7 +6,13 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from check_dictionary_order import Entry, collation_key, graphemes, target_text
+from check_dictionary_order import (
+    Entry,
+    collation_key,
+    graphemes,
+    sorted_entry_source,
+    target_text,
+)
 
 
 PATH = Path("chapter.tex")
@@ -59,6 +65,22 @@ class CollationTests(unittest.TestCase):
 
     def test_meta_construction_collates_with_its_prefix(self) -> None:
         self.assertEqual(collation_key(entry("tì-us")), collation_key(entry("tì")))
+
+    def test_complete_entry_blocks_are_reordered_losslessly(self) -> None:
+        source = """\\Chapter{T}{T}{T}{
+
+  % txaw
+  \\Headword{txaw}{\\B{txaw}}{\\I{[t'aw]} second}
+
+  % txawew
+  \\Headword{txawew}{\\B{txawew}}{\\I{[\"t'a.wEw]} first}
+
+}
+"""
+        corrected = sorted_entry_source(source, PATH)
+        self.assertLess(corrected.index("% txawew\n"), corrected.index("% txaw\n"))
+        self.assertIn("{\\I{[\"t'a.wEw]} first}", corrected)
+        self.assertIn("{\\I{[t'aw]} second}", corrected)
 
 
 if __name__ == "__main__":
