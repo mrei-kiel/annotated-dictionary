@@ -46,6 +46,12 @@ jobs:
       - name: Validate internal links
         run: python3 scripts/validate_dictionary.py
 
+      - name: Test dictionary ordering checker
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Check dictionary entry ordering
+        run: python3 scripts/check_dictionary_order.py
+
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@v4
         with:
