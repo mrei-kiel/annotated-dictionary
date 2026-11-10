@@ -27,9 +27,6 @@ SIGNATURES = {
     "textsc": (TEXT,),
 }
 
-# Their items carry their own word type and examples, and have no headword.
-HAND_WRITTEN_DERIVATIVES = {"kintrr", "vospxI"}
-
 MACRO_PATTERN = re.compile(r"\\(?:(?P<name>[A-Za-z]+)|.)", re.DOTALL)
 FINAL_PERIOD_PATTERN = re.compile(r"\.\}*$")
 
@@ -265,10 +262,7 @@ def check_derivatives(
                 yield macro, "\\Derivative must be inside \\Derivatives"
         elif macro.name == "textsc":
             if macro.arguments[0].text.startswith("Deriv"):
-                entry = enclosing_headword(macro)
-                anchor = entry and entry.arguments[0].text.strip()
-                if anchor not in HAND_WRITTEN_DERIVATIVES:
-                    yield macro, "derivative list must use \\Derivatives"
+                yield macro, "derivative list must use \\Derivatives"
 
 
 def annotation_escape(value: str, *, property_value: bool = False) -> str:
