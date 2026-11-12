@@ -84,10 +84,10 @@
 }
 
 \newcounter{DictionaryDerivative}
-\newcommand{\Derivatives}[1]{%
+\newcommand{\Derivatives}[2][]{%
   \\\textsc{Derivatives}: \ding{43}%
   \setcounter{DictionaryDerivative}{0}%
-  #1\unskip
+  #2\unskip
 }
 \newcommand{\Derivative}[3]{%
   \unskip\stepcounter{DictionaryDerivative}%
@@ -103,6 +103,7 @@
 % \ding{43}  see or compare with entry
 % \ding{246} military, combat, archery
 % \Derivatives{\Derivative{anchor}{dis\-play}{gloss, no final period}}, last in the entry
+%   items in grapheme order of their targets; \Derivatives[unsorted]{...} keeps a paradigm's order
 % (\emph{a. subjective}) through (\emph{f. topic})
 % (\textsc{rn}: \B{\cp{}} \I{[]})
 

@@ -43,6 +43,9 @@ jobs:
             --url "$build_url" \
             --output build-artifact.tex
 
+      - name: Test dictionary scripts
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
       - name: Validate internal links
         run: python3 scripts/validate_dictionary.py
 

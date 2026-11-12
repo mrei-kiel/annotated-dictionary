@@ -11,6 +11,14 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from navi_collation import (
+    CollationKey,
+    braced_argument,
+    collation_key,
+    headword_word,
+    main_ipa,
+)
+
 
 ANCHOR = "anchor"  # defines a hyperlink target
 TARGET = "target"  # links to a hyperlink target
@@ -27,6 +35,11 @@ SIGNATURES = {
     "textsc": (TEXT,),
 }
 
+# Macros taking a [bracketed] option before their braced arguments.
+OPTIONS = {"Derivatives"}
+UNSORTED = "unsorted"
+
+OPTION_PATTERN = re.compile(r"\s*\[(?P<option>[^\]{}]*)\]")
 MACRO_PATTERN = re.compile(r"\\(?:(?P<name>[A-Za-z]+)|.)", re.DOTALL)
 FINAL_PERIOD_PATTERN = re.compile(r"\.\}*$")
 
@@ -59,6 +72,7 @@ class Macro:
     line: int
     parent: Macro | None
     container: Argument | None
+    option: str | None = None
 
     @property
     def complete(self) -> bool:
@@ -89,33 +103,6 @@ def strip_comments(source: str) -> str:
     return "".join(cleaned_lines)
 
 
-def braced_argument(source: str, position: int) -> tuple[str, int] | None:
-    while position < len(source) and source[position].isspace():
-        position += 1
-    if position >= len(source) or source[position] != "{":
-        return None
-
-    start = position + 1
-    depth = 1
-    position += 1
-    while position < len(source):
-        character = source[position]
-        preceding_backslashes = 0
-        cursor = position - 1
-        while cursor >= 0 and source[cursor] == "\\":
-            preceding_backslashes += 1
-            cursor -= 1
-        if preceding_backslashes % 2 == 0:
-            if character == "{":
-                depth += 1
-            elif character == "}":
-                depth -= 1
-                if depth == 0:
-                    return source[start:position], position + 1
-        position += 1
-    return None
-
-
 def walk(
     source: str,
     path: Path,
@@ -131,6 +118,13 @@ def walk(
         roles = SIGNATURES.get(match.group("name"))
         if roles is None:
             continue
+
+        option = None
+        if match.group("name") in OPTIONS:
+            bracket = OPTION_PATTERN.match(source, position, end)
+            if bracket is not None:
+                option = bracket.group("option").strip()
+                position = bracket.end()
 
         arguments: list[Argument] = []
         for role in roles:
@@ -152,6 +146,7 @@ def walk(
             line=source.count("\n", 0, match.start()) + 1,
             parent=parent,
             container=container,
+            option=option,
         )
         yield macro
         for argument in macro.arguments:
@@ -242,8 +237,41 @@ def check_derivative_item(
         yield macro, f"\\Derivative {anchor!r} must use / instead of \\slash"
 
 
+def headword_keys(macros: Iterable[Macro]) -> dict[str, CollationKey]:
+    """Each headword's anchor with the collation key of its word and IPA."""
+    return {
+        macro.arguments[0].text.strip(): collation_key(
+            headword_word(macro.arguments[0].text, macro.arguments[1].text),
+            main_ipa(macro.arguments[2].text),
+        )
+        for macro in macros
+        if macro.name == "Headword"
+    }
+
+
+def check_derivatives_order(
+    macro: Macro, items: list[Macro], headwords: dict[str, CollationKey]
+) -> Iterator[tuple[Macro, str]]:
+    if macro.option is not None and macro.option != UNSORTED:
+        yield macro, f"\\Derivatives option {macro.option!r} must be [{UNSORTED}]"
+        return
+
+    anchors = [item.arguments[0].text.strip() for item in items]
+    if not all(anchor in headwords for anchor in anchors):
+        return  # check_derivative_item reports the missing headword
+    if macro.option == UNSORTED:
+        return
+    for item, anchor, previous in zip(items[1:], anchors[1:], anchors):
+        if headwords[anchor] >= headwords[previous]:
+            continue
+        yield item, (
+            f"\\Derivative {anchor!r} is out of order; it belongs before "
+            f"{previous!r}, or mark the list \\Derivatives[{UNSORTED}]"
+        )
+
+
 def check_derivatives(
-    macros: list[Macro], headwords: set[str]
+    macros: list[Macro], headwords: dict[str, CollationKey]
 ) -> Iterator[tuple[Macro, str]]:
     children: dict[Macro, list[Macro]] = defaultdict(list)
     for macro in macros:
@@ -254,9 +282,10 @@ def check_derivatives(
         if macro.name == "Derivatives":
             yield from check_derivatives_list(macro, children[macro])
             seen: set[str] = set()
-            for item in children[macro]:
-                if item.name == "Derivative":
-                    yield from check_derivative_item(item, headwords, seen)
+            items = [item for item in children[macro] if item.name == "Derivative"]
+            for item in items:
+                yield from check_derivative_item(item, headwords, seen)
+            yield from check_derivatives_order(macro, items, headwords)
         elif macro.name == "Derivative":
             if macro.parent is None or macro.parent.name != "Derivatives":
                 yield macro, "\\Derivative must be inside \\Derivatives"
@@ -328,12 +357,7 @@ def main() -> int:
             report_error(link, f"\\HL target {link.target!r} has no matching \\HT")
             errors += 1
 
-    headwords = {
-        macro.arguments[0].text.strip()
-        for macro in macros
-        if macro.name == "Headword"
-    }
-    for macro, message in check_derivatives(macros, headwords):
+    for macro, message in check_derivatives(macros, headword_keys(macros)):
         report_error(macro, message)
         errors += 1
 
